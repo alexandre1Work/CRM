@@ -3,8 +3,8 @@ async function carregarClientes() {
   try {
     const response = await fetch("/clientes"); 
     const clientes = await response.json();
-
     const tabela = document.getElementById("clientes-tabela");
+    tabela.innerHTML = ''
 
 
     clientes.forEach((cliente) => {
@@ -15,7 +15,7 @@ async function carregarClientes() {
       <td class="px-4 py-2 text-center">${cliente.telefone}</td>
       <td class="px-4 py-2 text-center">${cliente.email}</td>
       <td class="px-4 py-2 text-center">${cliente.ultimo_contato} Dias</td>
-      <td class="px-4 py-2 text-center" onclick="abrirModalTags()">
+      <td class="px-4 py-2 text-center" data-id="${cliente.id_cliente}" onclick="abrirModalTags(this.dataset.id)">
         <div class="listaTags">
           ${cliente.categorias
             .split(",")
@@ -34,9 +34,17 @@ async function carregarClientes() {
   }
 }
 
-function abrirModalTags() {
+function abrirModalTags(clienteId) {
+  console.log("Abrindo modal para o cliente ID:", clienteId); // Debug: verifique o ID aqui
   document.getElementById("tags-modal").classList.remove("hidden");
   carregarTags(); // Carrega tags existentes no select do modal
+
+  // Atualiza a função de atribuição com o ID do cliente
+  const atribuirTagButton = document.getElementById("atribuir-tag-button");
+  atribuirTagButton.onclick = () => {
+    console.log("Atribuindo tag para o cliente ID:", clienteId); // Debug: verifique o ID antes de atribuir
+    atribuirTag(clienteId);
+  };
 }
 
 function fecharModal() {
