@@ -1,36 +1,61 @@
 
 async function carregarClientes() {
   try {
-    const response = await fetch("/clientes"); 
+    const response = await fetch("/clientes");
     const clientes = await response.json();
-    const tabela = document.getElementById("clientes-tabela");
-    tabela.innerHTML = ''
 
+    const tabela = document.getElementById("clientes-tabela");
+    tabela.innerHTML = ""; // Limpa a tabela antes de adicionar novos clientes
 
     clientes.forEach((cliente) => {
       const row = document.createElement("tr");
       row.innerHTML = `
-      <td class="py-2 px-1 text-center"><input type="checkbox" name="" id=""></td>
-      <td class="px-4 py-2 text-center">${cliente.nome_completo}</td>
-      <td class="px-4 py-2 text-center">${cliente.telefone}</td>
-      <td class="px-4 py-2 text-center">${cliente.email}</td>
-      <td class="px-4 py-2 text-center">${cliente.ultimo_contato} Dias</td>
-      <td class="px-4 py-2 text-center" data-id="${cliente.id_cliente}" onclick="abrirModalTags(this.dataset.id)">
-        <div class="listaTags">
-          ${cliente.categorias
-            .split(",")
-            .map(
-              (cat) =>
-                `<span class="itemTag bg-blue-100 text-blue-800 px-2 py-1 rounded-full cursor-pointer">${cat}</span>`
-            )
-            .join("")}
-        </div>
-      </td>
-    `;
+        <td class="py-2 px-1 text-center"><input type="checkbox" name="" id=""></td>
+        <td class="px-4 py-2 text-center">${cliente.nome_completo}</td>
+        <td class="px-4 py-2 text-center">${cliente.telefone}</td>
+        <td class="px-4 py-2 text-center">${cliente.email}</td>
+        <td class="px-4 py-2 text-center">${cliente.ultimo_contato} Dias</td>
+        <td class="px-4 py-2 text-center" data-id="${cliente.id_cliente}" onclick="abrirModalTags(this.dataset.id)">
+          <div class="listaTags">
+            ${
+              cliente.categorias
+                ? cliente.categorias.split(",").map((cat) => {
+                    const [catId, catName] = cat.split("|"); // Divide id e nome pelo delimitador '|'
+                    return `
+                      <span class="itemTag bg-blue-100 text-blue-800 px-2 py-1 rounded-full cursor-pointer" data-id="${catId}">
+                        ${catName} 
+                        <span onclick="removerTag(event, ${cliente.id_cliente}, ${catId})" class="text-blue-500 ml-1 cursor-pointer">x</span>
+                      </span>`;
+                  }).join("")
+                : "Nenhuma Tag"
+            }
+          </div>
+        </td>
+      `;
       tabela.appendChild(row);
     });
   } catch (error) {
     console.error("Erro ao carregar clientes:", error);
+  }
+}
+
+async function removerTag(event, clienteId, tagId) {
+  // Impede que o clique no "X" abra o modal
+  event.stopPropagation();
+  
+  try {
+    const response = await fetch(`/clientes/${clienteId}/tags/${tagId}`, {
+      method: "DELETE"
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erro ao remover tag: ${response.status}`);
+    }
+
+    // Recarregar a lista de clientes após remover a tag
+    carregarClientes();
+  } catch (error) {
+    console.error("Erro ao remover tag:", error);
   }
 }
 
