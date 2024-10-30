@@ -2,13 +2,15 @@ async function carregarClientes() {
   try {
     const response = await fetch("/clientes");
     const clientes = await response.json();
-
     const tabela = document.getElementById("clientes-tabela");
-    tabela.innerHTML = ""; // Limpa a tabela antes de adicionar novos clientes
+    tabela.innerHTML = ""; 
+
     clientes.forEach((cliente) => {
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td class="py-2 px-1 text-center"><input type="checkbox" name="" id=""></td>
+        <td class="py-2 px-1 text-center">
+          <input type="checkbox" name="" class="cliente-checkbox" id="checkbox-${cliente.id_cliente}" data-cliente-id="${cliente.id_cliente}">
+        </td>
         <td class="px-4 py-2 text-center">${cliente.nome_completo}</td>
         <td class="px-4 py-2 text-center">${cliente.telefone}</td>
         <td class="px-4 py-2 text-center">${cliente.email}</td>
@@ -104,7 +106,6 @@ async function atribuirTag(clienteId) {
   if (!tagId) return alert("Selecione uma tag para atribuir!");
 
   try {
-    // Verifica se a tag já existe para o cliente
     const verificarTagResponse = await fetch(`/clientes/${clienteId}/tags/${tagId}`);
     if (verificarTagResponse.ok) {
       alert("Tag já atribuída ao cliente.");
@@ -127,6 +128,86 @@ async function atribuirTag(clienteId) {
   } catch (error) {
     console.error("Erro ao atribuir tag:", error);
   }
+}
+
+async function criarTemplateMensagem() {
+  const titulo = document.getElementById("tituloMensagem").value;
+  const corpo = document.getElementById("corpoMensagem").value;
+
+  if (!titulo || !corpo) {
+    return alert("Preencha todos os campos!");
+  }
+
+  try {
+    await fetch("/mensagens", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ titulo, corpo }),
+    });
+
+    document.getElementById("tituloMensagem").value = "";
+    document.getElementById("corpoMensagem").value = "";
+    fecharModalMensagem();
+  } catch (error) {
+    console.error("Erro ao criar template de mensagem:", error);
+  }
+}
+
+async function enviarMensagens() {
+  const clientesSelecionados = Array.from(document.querySelectorAll('.cliente-checkbox:checked'))
+    .map(checkbox => checkbox.getAttribute('data-cliente-id')); 
+
+  if (clientesSelecionados.length === 0) {
+    return alert("Nenhum cliente selecionado!");
+  }
+
+  const templateId = document.getElementById("templatesMensagens").value; 
+
+  try {
+    await fetch(`/mensagens/enviar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientes: clientesSelecionados, templateId }),
+    });
+
+    alert("Mensagens enviadas com sucesso!");
+    fecharModalTemplate(); 
+
+  } catch (error) {
+    console.error("Erro ao enviar mensagens:", error);
+  }
+}
+
+async function abrirModalSelecaoTemplate() {
+  const selectTemplate = document.getElementById("templatesMensagens");
+  selectTemplate.innerHTML = ""; 
+
+  try {
+    const response = await fetch('/mensagens');
+    const templates = await response.json();
+
+    templates.forEach(template => {
+      const option = document.createElement('option');
+      option.value = template.id_mensagem;
+      option.textContent = template.titulo; 
+      selectTemplate.appendChild(option);
+    });
+
+    document.getElementById("select-template-modal").classList.remove("hidden");
+  } catch (error) {
+    console.error("Erro ao buscar templates:", error);
+  }
+}
+function fecharModalTemplate() {
+  document.getElementById("select-template-modal").classList.add("hidden");
+}
+
+function fecharModalMensagem() {
+  document.getElementById("mensagem-modal").classList.add("hidden");
+}
+
+function abrirModalMensagem() {
+  document.getElementById("mensagem-modal").classList.remove("hidden");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
