@@ -13,7 +13,7 @@ async function carregarClientes() {
       row.classList.add('hover:bg-gray-50')
       row.innerHTML = `
         <td class="py-2 px-1 text-center cursor-pointer">
-          <input type="checkbox" name="" class="cliente-checkbox" id="checkbox-${cliente.id_cliente}" data-cliente-id="${cliente.id_cliente}">
+          <input type="checkbox" onclick="event.stopPropagation()" name="" class="cliente-checkbox" id="checkbox-${cliente.id_cliente}" data-cliente-id="${cliente.id_cliente}">
         </td>
         <td class="px-4 py-2 text-center cursor-pointer">${cliente.nome_completo}</td>
         <td class="px-4 py-2 text-center cursor-pointer">${cliente.telefone}</td>
