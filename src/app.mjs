@@ -12,24 +12,24 @@ app.use(express.json());
 app.use(express.static(path.join(path.resolve(), "public")));
 app.use(express.urlencoded({ extended: true }));
 
-app.get("/clientes", (req, res) => {
+app.get('/clientes', (req, res) => {
   const query = `
-      SELECT 
-  c.id_cliente,
-  c.nome_completo, 
-  c.telefone, 
-  c.email, 
-  c.ultimo_contato, 
-  GROUP_CONCAT(CONCAT(cat.id_categoria, '|', cat.nome_categoria) SEPARATOR ',') AS categorias
-FROM 
-  cliente c
-LEFT JOIN 
-  cliente_categoria cc ON c.id_cliente = cc.id_cliente
-LEFT JOIN 
-  categoria cat ON cc.id_categoria = cat.id_categoria
-GROUP BY 
-  c.id_cliente;
-    `;
+    SELECT 
+      c.id_cliente,
+      c.nome_completo, 
+      c.telefone, 
+      c.email, 
+      c.ultimo_contato, 
+      GROUP_CONCAT(cat.id_categoria, '|', cat.nome_categoria) AS categorias
+    FROM 
+      cliente c
+    LEFT JOIN 
+      cliente_categoria cc ON c.id_cliente = cc.id_cliente
+    LEFT JOIN 
+      categoria cat ON cc.id_categoria = cat.id_categoria
+    GROUP BY 
+      c.id_cliente;
+  `;
 
   db.query(query, (err, results) => {
     if (err) {
@@ -38,6 +38,7 @@ GROUP BY
     res.json(results);
   });
 });
+
 
 app.delete("/clientes/:clienteId/tags/:tagId", (req, res) => {
   const { clienteId, tagId } = req.params;
@@ -77,12 +78,26 @@ app.post("/tags", (req, res) => {
   });
 });
 
+app.delete("/clientes/:clienteId/tags/:tagId", (req, res) => {
+  const { clienteId, tagId } = req.params;
+  const query = `
+      DELETE FROM cliente_categoria 
+      WHERE id_cliente = ? AND id_categoria = ?;
+    `;
+
+  db.query(query, [clienteId, tagId], (err, results) => {
+    if (err) {
+      return res.status(500).send(err);
+    }
+    res.status(200).send("Tag removida com sucesso.");
+  });
+});
+
 // Rota para atribuir uma tag a um cliente
 app.post("/clientes/:id_cliente/tags", (req, res) => {
   const { id_cliente } = req.params;
   const { id_categoria } = req.body; // Espera o ID da categoria a ser associada
-  const query =
-    "INSERT INTO cliente_categoria (id_cliente, id_categoria) VALUES (?, ?)";
+  const query = 'INSERT IGNORE INTO cliente_categoria (id_cliente, id_categoria) VALUES (?, ?)';
   db.query(query, [id_cliente, id_categoria], (err, results) => {
     if (err) {
       return res.status(500).send(err);

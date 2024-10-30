@@ -1,4 +1,3 @@
-
 async function carregarClientes() {
   try {
     const response = await fetch("/clientes");
@@ -6,7 +5,6 @@ async function carregarClientes() {
 
     const tabela = document.getElementById("clientes-tabela");
     tabela.innerHTML = ""; // Limpa a tabela antes de adicionar novos clientes
-
     clientes.forEach((cliente) => {
       const row = document.createElement("tr");
       row.innerHTML = `
@@ -16,21 +14,21 @@ async function carregarClientes() {
         <td class="px-4 py-2 text-center">${cliente.email}</td>
         <td class="px-4 py-2 text-center">${cliente.ultimo_contato} Dias</td>
         <td class="px-4 py-2 text-center" data-id="${cliente.id_cliente}" onclick="abrirModalTags(this.dataset.id)">
-          <div class="listaTags">
-            ${
-              cliente.categorias
-                ? cliente.categorias.split(",").map((cat) => {
-                    const [catId, catName] = cat.split("|"); // Divide id e nome pelo delimitador '|'
-                    return `
-                      <span class="itemTag bg-blue-100 text-blue-800 px-2 py-1 rounded-full cursor-pointer" data-id="${catId}">
-                        ${catName} 
-                        <span onclick="removerTag(event, ${cliente.id_cliente}, ${catId})" class="text-blue-500 ml-1 cursor-pointer">x</span>
-                      </span>`;
-                  }).join("")
-                : "Nenhuma Tag"
-            }
-          </div>
-        </td>
+  <div class="listaTags">
+    ${
+      cliente.categorias && cliente.categorias.trim()
+        ? cliente.categorias.split(",").map((cat) => {
+            const [catId, catName] = cat.split("|");
+            return `
+              <span class="itemTag bg-blue-100 text-blue-800 px-2 py-1 rounded-full cursor-pointer" data-id="${catId}">
+                ${catName} 
+                <span onclick="removerTag(event, ${cliente.id_cliente}, ${catId})" class="text-blue-500 ml-1 cursor-pointer">x</span>
+              </span>`;
+          }).join("")
+        : `<span class="cursor-pointer bg-red-100 px-2 py-1 rounded-full" onclick="abrirModalTags(${cliente.id_cliente})">Sem Tag</span>`
+    }
+  </div>
+</td>
       `;
       tabela.appendChild(row);
     });
@@ -40,39 +38,26 @@ async function carregarClientes() {
 }
 
 async function removerTag(event, clienteId, tagId) {
-  // Impede que o clique no "X" abra o modal
   event.stopPropagation();
-  
   try {
-    const response = await fetch(`/clientes/${clienteId}/tags/${tagId}`, {
-      method: "DELETE"
-    });
-
-    if (!response.ok) {
-      throw new Error(`Erro ao remover tag: ${response.status}`);
-    }
-
-    // Recarregar a lista de clientes após remover a tag
-    carregarClientes();
-  } catch (error) {
-    console.error("Erro ao remover tag:", error);
-  }
+     const response = await fetch(`/clientes/${clienteId}/tags/${tagId}`, { method: "DELETE" });
+     if (!response.ok) throw new Error(`Erro ao remover tag: ${response.status}`);
+     carregarClientes();
+  } catch (error) { console.error("Erro ao remover tag:", error); }
 }
 
-function abrirModalTags(clienteId) {
-  console.log("Abrindo modal para o cliente ID:", clienteId); // Debug: verifique o ID aqui
-  document.getElementById("tags-modal").classList.remove("hidden");
-  carregarTags(); // Carrega tags existentes no select do modal
 
-  // Atualiza a função de atribuição com o ID do cliente
+function abrirModalTags(clienteId) {
+  document.getElementById("tags-modal").classList.remove("hidden");
+  carregarTags();
+
   const atribuirTagButton = document.getElementById("atribuir-tag-button");
   atribuirTagButton.onclick = () => {
-    console.log("Atribuindo tag para o cliente ID:", clienteId); // Debug: verifique o ID antes de atribuir
     atribuirTag(clienteId);
   };
 }
 
-function fecharModal() {
+function fecharModalTags() {
   document.getElementById("tags-modal").classList.add("hidden");
 }
 
@@ -84,12 +69,12 @@ async function carregarTags() {
     }
     const tags = await response.json();
     const select = document.getElementById("tagsExistentes");
-    select.innerHTML = ""; // Limpa o select
+    select.innerHTML = "";
 
     tags.forEach(tag => {
       const option = document.createElement("option");
-      option.value = tag.id_categoria; // ID da tag
-      option.textContent = tag.nome_categoria; // Nome da tag
+      option.value = tag.id_categoria;
+      option.textContent = tag.nome_categoria;
       select.appendChild(option);
     });
   } catch (error) {
@@ -119,6 +104,13 @@ async function atribuirTag(clienteId) {
   if (!tagId) return alert("Selecione uma tag para atribuir!");
 
   try {
+    // Verifica se a tag já existe para o cliente
+    const verificarTagResponse = await fetch(`/clientes/${clienteId}/tags/${tagId}`);
+    if (verificarTagResponse.ok) {
+      alert("Tag já atribuída ao cliente.");
+      return;
+    }
+
     const response = await fetch(`/clientes/${clienteId}/tags`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -126,11 +118,12 @@ async function atribuirTag(clienteId) {
     });
 
     if (!response.ok) {
-      throw new Error(`Erro ao atribuir tag: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`Erro ao atribuir tag: ${response.status} - ${errorText}`);
     }
 
-    fecharModal(); // Fecha o modal após a atribuição
-    carregarClientes(); // Recarrega a tabela de clientes para atualizar as tags
+    fecharModalTags();
+    carregarClientes();
   } catch (error) {
     console.error("Erro ao atribuir tag:", error);
   }

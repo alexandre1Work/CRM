@@ -58,28 +58,27 @@
         <div class="bg-white p-6 rounded-lg shadow-lg w-96">
           <h2 class="text-lg font-semibold mb-4">Gerenciar Tags</h2>
     
-          <!-- Input para adicionar nova tag -->
+         
           <label for="novaTag" class="block text-sm font-medium text-gray-700">Adicionar nova tag:</label>
           <input type="text" id="novaTag" placeholder="Digite nova tag..."
                  class="mt-1 mb-3 p-2 border rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
           <button onclick="addTag()" 
                   class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded mb-4">Adicionar Tag</button>
     
-          <!-- Select para escolher tags existentes -->
+          
           <label for="tagsExistentes" class="block text-sm font-medium text-gray-700">Tags existentes:</label>
           <select id="tagsExistentes" 
                   class="mt-1 mb-3 p-2 border rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <!-- Opções de tags adicionadas dinamicamente -->
           </select>
-    
-          <!-- Botão para atribuir tag -->
-          <button 
-                  class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded" id="atribuir-tag-button">Atribuir Tag</button>
-    
-          <!-- Botão para fechar o modal -->
-          <button onclick="fecharModal()"
+
+          <button class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded" id="atribuir-tag-button">Atribuir Tag</button>
+
+          <button onclick="fecharModalTags()"
                   class="mt-4 w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 rounded">Fechar</button>
         </div>
+      </div>
+      <div id="msg-modal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-start pt-10 z-50">
+
       </div>
     </div>
 
