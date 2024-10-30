@@ -97,6 +97,25 @@
             <button onclick="fecharModalCadastro()" class="mt-4 w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 rounded">Fechar</button>
         </div>
     </div>
+
+    <div id="modalEditar" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-start pt-10 z-50">
+      <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+          <h2 class="text-lg font-semibold mb-4">Editar Cliente</h2>
+          <input type="hidden" id="idCliente">
+          <label for="nomeCliente" class="block text-sm font-medium text-gray-700">Nome:</label>
+          <input type="text" id="nomeCliente" class="mt-1 mb-3 p-2 border rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+  
+          <label for="telefoneCliente" class="block text-sm font-medium text-gray-700">Telefone:</label>
+          <input type="text" id="telefoneCliente" class="mt-1 mb-3 p-2 border rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+  
+          <label for="emailCliente" class="block text-sm font-medium text-gray-700">Email:</label>
+          <input type="email" id="emailCliente" class="mt-1 mb-3 p-2 border rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
+  
+          <button onclick="salvarEdicoes()" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded">Salvar</button>
+          <button onclick="fecharModalEditar()" class="mt-4 w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 rounded">Fechar</button>
+      </div>
+  </div>
+
       <div
         id="tags-modal"
         class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-start pt-10 z-50"
@@ -145,6 +164,8 @@
           </button>
         </div>
       </div>
+
+
       <div
         id="mensagem-modal"
         class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-start pt-10 z-50"
@@ -188,7 +209,8 @@
           </button>
         </div>
       </div>
-      <!-- Modal para selecionar template de mensagem -->
+  
+      
       <div
         id="select-template-modal"
         class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-start pt-10 z-50"

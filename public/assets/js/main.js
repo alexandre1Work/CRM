@@ -9,14 +9,16 @@ async function carregarClientes() {
 
     clientes.forEach((cliente) => {
       const row = document.createElement("tr");
+      row.onclick = () => abrirModalEditar(cliente.id_cliente)
+      row.classList.add('hover:bg-gray-50')
       row.innerHTML = `
-        <td class="py-2 px-1 text-center">
+        <td class="py-2 px-1 text-center cursor-pointer">
           <input type="checkbox" name="" class="cliente-checkbox" id="checkbox-${cliente.id_cliente}" data-cliente-id="${cliente.id_cliente}">
         </td>
-        <td class="px-4 py-2 text-center">${cliente.nome_completo}</td>
-        <td class="px-4 py-2 text-center">${cliente.telefone}</td>
-        <td class="px-4 py-2 text-center">${cliente.email}</td>
-        <td class="px-4 py-2 text-center">${cliente.ultimo_contato} Dias</td>
+        <td class="px-4 py-2 text-center cursor-pointer">${cliente.nome_completo}</td>
+        <td class="px-4 py-2 text-center cursor-pointer">${cliente.telefone}</td>
+        <td class="px-4 py-2 text-center cursor-pointer">${cliente.email}</td>
+        <td class="px-4 py-2 text-center cursor-pointer">${cliente.ultimo_contato} Dias</td>
         <td class="px-4 py-2 text-center" data-id="${cliente.id_cliente}" onclick="abrirModalTags(this.dataset.id)">
   <div class="listaTags">
     ${
@@ -129,6 +131,61 @@ function abrirModalTags(clienteId) {
 
 function fecharModalTags() {
   document.getElementById("tags-modal").classList.add("hidden");
+}
+
+function abrirModalEditar(id_cliente) {
+  fetch(`/clientes/${id_cliente}`)
+      .then(response => {
+          if (!response.ok) {
+              throw new Error("Erro ao buscar dados do cliente.");
+          }
+          return response.json();
+      })
+      .then(cliente => {
+          document.getElementById('nomeCliente').value = cliente.nome_completo;
+          document.getElementById('telefoneCliente').value = cliente.telefone;
+          document.getElementById('emailCliente').value = cliente.email;
+          document.getElementById('idCliente').value = cliente.id_cliente; // ID do cliente
+          document.getElementById('modalEditar').classList.remove('hidden'); // Exibir modal
+      })
+      .catch(error => {
+          console.error("Erro ao buscar dados do cliente:", error);
+          alert("Erro ao buscar dados do cliente.");
+      });
+}
+
+function salvarEdicoes() {
+  const id_cliente = document.getElementById('idCliente').value;
+  const nome = document.getElementById('nomeCliente').value;
+  const telefone = document.getElementById('telefoneCliente').value;
+  const email = document.getElementById('emailCliente').value;
+
+  const clienteAtualizado = { nome_completo: nome, telefone, email };
+
+  fetch(`/clientes/${id_cliente}`, {
+      method: 'PUT',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(clienteAtualizado)
+  })
+  .then(response => {
+      if (!response.ok) throw new Error('Erro ao atualizar cliente');
+      return response.json();
+  })
+  .then(data => {
+      alert("Cliente atualizado com sucesso!");
+      carregarClientes(); // Atualiza a tabela de clientes
+      fecharModalEditar(); // Fecha o modal
+  })
+  .catch(error => {
+      console.error("Erro ao atualizar cliente:", error);
+      alert("Erro ao atualizar cliente.");
+  });
+}
+
+function fecharModalEditar() {
+  document.getElementById('modalEditar').classList.add('hidden');
 }
 
 async function carregarTags() {

@@ -43,6 +43,23 @@ app.get('/clientes', (req, res) => {
   });
 });
 
+// Rota para obter os dados de um cliente específico
+app.get('/clientes/:id_cliente', (req, res) => {
+  const id_cliente = req.params.id_cliente;
+  const query = 'SELECT * FROM cliente WHERE id_cliente = ?';
+
+  db.query(query, [id_cliente], (error, results) => {
+    if (error) {
+      console.error("Erro ao buscar cliente:", error);
+      return res.status(500).json({ error: 'Erro ao buscar cliente.' });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Cliente não encontrado.' });
+    }
+    res.json(results[0]); 
+  });
+});
+
 // Rota para criar um novo cliente
 app.post('/clientes', (req, res) => {
   const { nome_completo, telefone, email } = req.body;
