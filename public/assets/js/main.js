@@ -26,12 +26,12 @@ async function carregarClientes() {
         ? cliente.categorias.split(",").map((cat) => {
             const [catId, catName] = cat.split("|");
             return `
-              <span class="itemTag bg-blue-100 text-blue-800 px-2 py-1 rounded-full cursor-pointer" data-id="${catId}">
+              <span class="itemTag bg-blue-100 text-blue-800 px-2 py-1 rounded-full cursor-pointer" data-id="${catId}" onclick="event.stopPropagation();">
                 ${catName} 
-                <span onclick="removerTag(event, ${cliente.id_cliente}, ${catId})" class="text-blue-500 ml-1 cursor-pointer">x</span>
+                <span onclick="event.stopPropagation(); removerTag(event, ${cliente.id_cliente}, ${catId})" class="text-blue-500 ml-1 cursor-pointer">x</span>
               </span>`;
           }).join("")
-        : `<span class="cursor-pointer bg-red-100 px-2 py-1 rounded-full" onclick="abrirModalTags(${cliente.id_cliente})">Sem Tag</span>`
+        : `<span class="cursor-pointer bg-red-100 px-2 py-1 rounded-full" onclick="event.stopPropagation(); abrirModalTags(event, ${cliente.id_cliente})">Sem Tag</span>`
     }
   </div>
 </td>
@@ -119,7 +119,8 @@ function fecharModalCadastro() {
   document.getElementById("email").value = '';
 }
 
-function abrirModalTags(clienteId) {
+function abrirModalTags(event ,clienteId) {
+  event.stopPropagation()
   document.getElementById("tags-modal").classList.remove("hidden");
   carregarTags();
 
