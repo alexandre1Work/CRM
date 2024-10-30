@@ -1,3 +1,5 @@
+
+
 async function carregarClientes() {
   try {
     const response = await fetch("/clientes");
@@ -34,6 +36,7 @@ async function carregarClientes() {
       `;
       tabela.appendChild(row);
     });
+    atualizarListenersCheckboxes()
   } catch (error) {
     console.error("Erro ao carregar clientes:", error);
   }
@@ -48,6 +51,71 @@ async function removerTag(event, clienteId, tagId) {
   } catch (error) { console.error("Erro ao remover tag:", error); }
 }
 
+async function removerClientes() {
+  const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+  const idsParaExcluir = Array.from(checkboxes).map(checkbox => checkbox.getAttribute('data-cliente-id'));
+
+  if (!confirm("Tem certeza que deseja excluir os clientes selecionados?")) {
+      return;
+  }
+
+  try {
+      const promises = idsParaExcluir.map(id_cliente => {
+          return fetch(`/clientes/${id_cliente}`, {
+              method: 'DELETE'
+          });
+      });
+
+      // Aguarda todas as promessas de exclusão serem resolvidas
+      await Promise.all(promises);
+
+      alert("Clientes excluídos com sucesso!");
+      // Atualizar a tabela de clientes, se necessário
+      // Você pode chamar uma função para recarregar a lista de clientes aqui
+      carregarClientes();
+  } catch (error) {
+      console.error("Erro ao excluir clientes:", error);
+      alert("Erro ao excluir clientes");
+  }
+}
+
+async function cadastrarCliente() {
+  const nomeCompleto = document.getElementById("nomeCompleto").value;
+  const telefone = document.getElementById("telefone").value;
+  const email = document.getElementById("email").value;
+
+  try {
+      const response = await fetch('/clientes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome_completo: nomeCompleto, telefone, email })
+      });
+
+      if (response.ok) {
+          const newCliente = await response.json();
+          console.log("Cliente cadastrado:", newCliente);
+          alert("Cliente cadastrado com sucesso!");
+          fecharModalCadastro();
+          carregarClientes()
+      } else {
+          throw new Error('Erro ao cadastrar cliente');
+      }
+  } catch (error) {
+      console.error("Erro ao cadastrar cliente:", error);
+      alert("Erro ao cadastrar cliente");
+  }
+}
+
+function abrirModalCadastroCliente(){
+  document.getElementById('modal-cadastro-cliente').classList.remove('hidden')
+}
+
+function fecharModalCadastro() {
+  document.getElementById("modal-cadastro-cliente").classList.add("hidden");
+  document.getElementById("nomeCompleto").value = '';
+  document.getElementById("telefone").value = '';
+  document.getElementById("email").value = '';
+}
 
 function abrirModalTags(clienteId) {
   document.getElementById("tags-modal").classList.remove("hidden");
@@ -213,3 +281,23 @@ function abrirModalMensagem() {
 document.addEventListener("DOMContentLoaded", () => {
   carregarClientes();
 });
+
+const atualizarListenersCheckboxes = () => {
+  const checkboxes = document.querySelectorAll('.cliente-checkbox');
+  const buttons = document.querySelectorAll('.botaoDisabled');
+
+  const updateButtonState = () => {
+      const anyChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
+      buttons.forEach(button => {
+          button.disabled = !anyChecked; // Habilita ou desabilita os botões
+      });
+  };
+
+  // Adiciona o listener para cada checkbox
+  checkboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', updateButtonState);
+  });
+
+  // Chama a função para definir o estado dos botões
+  updateButtonState();
+};

@@ -12,6 +12,9 @@ app.use(express.json());
 app.use(express.static(path.join(path.resolve(), "public")));
 app.use(express.urlencoded({ extended: true }));
 
+//=====================================================================================================
+//CRUD CLIENTES
+
 // Rota para carregar os clientes
 app.get('/clientes', (req, res) => {
   const query = `
@@ -45,8 +48,10 @@ app.post('/clientes', (req, res) => {
   const { nome_completo, telefone, email } = req.body;
   const query = 'INSERT INTO cliente (nome_completo, telefone, email) VALUES (?, ?, ?)';
   db.query(query, [nome_completo, telefone, email], (err, results) => {
-    if (err) return res.status(500).send(err);
-    res.status(201).json({ id_cliente: results.insertId, nome_completo, telefone, email });
+      if (err) {
+          return res.status(500).send(err);
+      }
+      res.status(201).json({ id_cliente: results.insertId, nome_completo, telefone, email });
   });
 });
 
@@ -56,18 +61,10 @@ app.put('/clientes/:id_cliente', (req, res) => {
   const { nome_completo, telefone, email } = req.body;
   const query = 'UPDATE cliente SET nome_completo = ?, telefone = ?, email = ? WHERE id_cliente = ?';
   db.query(query, [nome_completo, telefone, email, id_cliente], (err, results) => {
-    if (err) return res.status(500).send(err);
-    res.json({ message: 'Cliente atualizado com sucesso!' });
-  });
-});
-
-// Rota para criar um novo cliente
-app.post('/clientes', (req, res) => {
-  const { nome_completo, telefone, email } = req.body;
-  const query = 'INSERT INTO cliente (nome_completo, telefone, email) VALUES (?, ?, ?)';
-  db.query(query, [nome_completo, telefone, email], (err, results) => {
-    if (err) return res.status(500).send(err);
-    res.status(201).json({ id_cliente: results.insertId, nome_completo, telefone, email });
+      if (err) {
+          return res.status(500).send(err);
+      }
+      res.status(200).json({ message: 'Cliente atualizado com sucesso!' });
   });
 });
 
@@ -76,8 +73,10 @@ app.delete('/clientes/:id_cliente', (req, res) => {
   const { id_cliente } = req.params;
   const query = 'DELETE FROM cliente WHERE id_cliente = ?';
   db.query(query, [id_cliente], (err, results) => {
-    if (err) return res.status(500).send(err);
-    res.json({ message: 'Cliente excluído com sucesso!' });
+      if (err) {
+          return res.status(500).send(err);
+      }
+      res.status(200).json({ message: 'Cliente removido com sucesso!' });
   });
 });
 
