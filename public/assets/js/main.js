@@ -19,19 +19,19 @@ async function carregarClientes() {
         <td class="px-4 py-2 text-center cursor-pointer">${cliente.telefone}</td>
         <td class="px-4 py-2 text-center cursor-pointer">${cliente.email}</td>
         <td class="px-4 py-2 text-center cursor-pointer">${cliente.ultimo_contato} Dias</td>
-        <td class="px-4 py-2 text-center" data-id="${cliente.id_cliente}" onclick="abrirModalTags(this.dataset.id)">
-  <div class="listaTags">
+        <td class="px-4 py-2 text-center" data-id="${cliente.id_cliente}">
+  <div class="listaTags" onclick="abrirModalTags(event, ${cliente.id_cliente}); event.stopPropagation();">
     ${
       cliente.categorias && cliente.categorias.trim()
-        ? cliente.categorias.split(",").map((cat) => {
+        ? cliente.categorias.split(",").slice(0, 3).map((cat) => {
             const [catId, catName] = cat.split("|");
             return `
-              <span class="itemTag bg-blue-100 text-blue-800 px-2 py-1 rounded-full cursor-pointer" data-id="${catId}" onclick="event.stopPropagation();">
+              <span class="itemTag bg-blue-100 text-blue-800 px-2 py-1 rounded-full cursor-pointer" data-id="${catId}">
                 ${catName} 
                 <span onclick="event.stopPropagation(); removerTag(event, ${cliente.id_cliente}, ${catId})" class="text-blue-500 ml-1 cursor-pointer">x</span>
               </span>`;
-          }).join("")
-        : `<span class="cursor-pointer bg-red-100 px-2 py-1 rounded-full" onclick="event.stopPropagation(); abrirModalTags(event, ${cliente.id_cliente})">Sem Tag</span>`
+          }).join("") + (cliente.categorias.split(",").length > 3 ? ` <span class="bg-gray-200 px-2 py-1 rounded-full">+${cliente.categorias.split(",").length - 3} mais</span>` : "")
+        : `<span class="cursor-pointer bg-red-100 px-2 py-1 rounded-full">Sem Tag</span>`
     }
   </div>
 </td>
@@ -120,7 +120,7 @@ function fecharModalCadastro() {
 }
 
 function abrirModalTags(event ,clienteId) {
-  event.stopPropagation()
+
   document.getElementById("tags-modal").classList.remove("hidden");
   carregarTags();
 

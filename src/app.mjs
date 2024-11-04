@@ -3,6 +3,8 @@ import path from "path";
 import dotenv from "dotenv";
 import mysql from "mysql2";
 
+
+
 dotenv.config();
 const db = mysql.createPool(process.env.CONNECTION_STRING);
 
@@ -122,6 +124,26 @@ app.post("/tags", (req, res) => {
   });
 });
 
+// Rota para verificar se uma tag ja está atribuida
+app.get('/clientes/:clienteId/tags/:tagId', async (req, res) => {
+  const { clienteId, tagId } = req.params;
+
+  try {
+    const [resultado] = await db.query(
+      'SELECT * FROM cliente_categoria WHERE cliente_id = ? AND categoria_id = ?',
+      [clienteId, tagId]
+    );
+
+    if (resultado.length > 0) {
+      res.status(200).send('Tag já atribuída');
+    } else {
+      res.status(404).send('Tag não atribuída');
+    }
+  } catch (error) {
+    console.error("Erro ao verificar tag:", error);
+    res.status(500).send('Erro ao verificar tag');
+  }
+});
 
 // Rota para desatribuir uma tag de um cliente
 app.delete("/clientes/:clienteId/tags/:tagId", (req, res) => {
