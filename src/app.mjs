@@ -2,8 +2,9 @@ import express from "express";
 import path from "path";
 import dotenv from "dotenv";
 import mysql from "mysql2";
-
-
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const gClient = require('../public/assets/js/gzappy.js');
 
 dotenv.config();
 const db = mysql.createPool(process.env.CONNECTION_STRING);
@@ -205,9 +206,28 @@ app.post('/mensagens/enviar', async (req, res) => {
   const { clientes, templateId } = req.body;
 
   try {
-    const mensagemQuery = 'SELECT * FROM mensagem WHERE id_mensagem = ?';
-    const [template] = await db.promise().query(mensagemQuery, [templateId]);
+    // Consulta o template de mensagem
+    const [template] = await db.promise().query('SELECT * FROM mensagem WHERE id_mensagem = ?', [templateId]);
+    const mensagemTexto = template[0]?.corpo;
 
+    if (!mensagemTexto) {
+      return res.status(404).send("Template de mensagem não encontrado.");
+    }
+
+    // Busca os números de telefone dos clientes
+    const clientePromises = clientes.map(async clienteId => {
+      const [cliente] = await db.promise().query('SELECT telefone FROM cliente WHERE id_cliente = ?', [clienteId]);
+      return cliente[0]?.telefone;
+    });
+
+    // Aguarda a obtenção de todos os números de telefone
+    const telefones = await Promise.all(clientePromises);
+
+    // Envia a mensagem para todos os números usando o GZAPPY
+    const response = await gClient.sendMessage([mensagemTexto], telefones);
+    console.log("Resposta do GZAPPY:", response);
+
+    // Registra o envio no banco de dados
     const envioPromises = clientes.map(clienteId => {
       const query = 'INSERT INTO envio_mensagem (id_cliente, id_mensagem, data_envio) VALUES (?, ?, CURDATE())';
       return db.promise().query(query, [clienteId, templateId]);
@@ -216,7 +236,8 @@ app.post('/mensagens/enviar', async (req, res) => {
     await Promise.all(envioPromises);
     res.status(200).send("Mensagens enviadas com sucesso!");
   } catch (error) {
-    return res.status(500).send(err);
+    console.error("Erro ao enviar mensagens:", error);
+    res.status(500).send("Erro ao enviar mensagens");
   }
 });
 
