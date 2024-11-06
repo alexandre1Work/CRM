@@ -1,22 +1,253 @@
-import express from 'express';
-import path from 'path';
-import dotenv from 'dotenv';
+import express from "express";
+import path from "path";
+import dotenv from "dotenv";
+import mysql from "mysql2";
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const gClient = require('../public/assets/js/gzappy.js');
 
 dotenv.config();
+const db = mysql.createPool(process.env.CONNECTION_STRING);
 
-const app = express()
-app.use(express.json())
+const app = express();
+app.use(express.json());
 
-app.use(express.static(path.join(path.resolve(), 'public')));
+app.use(express.static(path.join(path.resolve(), "public")));
 app.use(express.urlencoded({ extended: true }));
+
+//=====================================================================================================
+//CRUD CLIENTES
+
+// Rota para carregar os clientes
+app.get('/clientes', (req, res) => {
+  const query = `
+    SELECT 
+      c.id_cliente,
+      c.nome_completo, 
+      c.telefone, 
+      c.email, 
+      c.ultimo_contato, 
+      GROUP_CONCAT(cat.id_categoria, '|', cat.nome_categoria) AS categorias
+    FROM 
+      cliente c
+    LEFT JOIN 
+      cliente_categoria cc ON c.id_cliente = cc.id_cliente
+    LEFT JOIN 
+      categoria cat ON cc.id_categoria = cat.id_categoria
+    GROUP BY 
+      c.id_cliente;
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      return res.status(500).send(err);
+    }
+    res.json(results);
+  });
+});
+
+// Rota para obter os dados de um cliente específico
+app.get('/clientes/:id_cliente', (req, res) => {
+  const id_cliente = req.params.id_cliente;
+  const query = 'SELECT * FROM cliente WHERE id_cliente = ?';
+
+  db.query(query, [id_cliente], (error, results) => {
+    if (error) {
+      console.error("Erro ao buscar cliente:", error);
+      return res.status(500).json({ error: 'Erro ao buscar cliente.' });
+    }
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Cliente não encontrado.' });
+    }
+    res.json(results[0]); 
+  });
+});
+
+// Rota para criar um novo cliente
+app.post('/clientes', (req, res) => {
+  const { nome_completo, telefone, email } = req.body;
+  const query = 'INSERT INTO cliente (nome_completo, telefone, email) VALUES (?, ?, ?)';
+  db.query(query, [nome_completo, telefone, email], (err, results) => {
+      if (err) {
+          return res.status(500).send(err);
+      }
+      res.status(201).json({ id_cliente: results.insertId, nome_completo, telefone, email });
+  });
+});
+
+// Rota para atualizar um cliente
+app.put('/clientes/:id_cliente', (req, res) => {
+  const { id_cliente } = req.params;
+  const { nome_completo, telefone, email } = req.body;
+  const query = 'UPDATE cliente SET nome_completo = ?, telefone = ?, email = ? WHERE id_cliente = ?';
+  db.query(query, [nome_completo, telefone, email, id_cliente], (err, results) => {
+      if (err) {
+          return res.status(500).send(err);
+      }
+      res.status(200).json({ message: 'Cliente atualizado com sucesso!' });
+  });
+});
+
+// Rota para excluir um cliente
+app.delete('/clientes/:id_cliente', (req, res) => {
+  const { id_cliente } = req.params;
+  const query = 'DELETE FROM cliente WHERE id_cliente = ?';
+  db.query(query, [id_cliente], (err, results) => {
+      if (err) {
+          return res.status(500).send(err);
+      }
+      res.status(200).json({ message: 'Cliente removido com sucesso!' });
+  });
+});
+
+
+
+// Rota para listar todas as tags
+app.get("/tags", (req, res) => {
+  const query = "SELECT * FROM categoria";
+  db.query(query, (err, results) => {
+    if (err) {
+      return res.status(500).send(err);
+    }
+    res.json(results);
+  });
+});
+
+// Rota para adicionar uma nova tag
+app.post("/tags", (req, res) => {
+  const { nome_categoria } = req.body;
+  const query = "INSERT INTO categoria (nome_categoria) VALUES (?)";
+  db.query(query, [nome_categoria], (err, results) => {
+    if (err) {
+      return res.status(500).send(err);
+    }
+    res.status(201).json({ id_categoria: results.insertId, nome_categoria });
+  });
+});
+
+// Rota para verificar se uma tag ja está atribuida
+app.get('/clientes/:clienteId/tags/:tagId', async (req, res) => {
+  const { clienteId, tagId } = req.params;
+
+  try {
+    const [resultado] = await db.query(
+      'SELECT * FROM cliente_categoria WHERE cliente_id = ? AND categoria_id = ?',
+      [clienteId, tagId]
+    );
+
+    if (resultado.length > 0) {
+      res.status(200).send('Tag já atribuída');
+    } else {
+      res.status(404).send('Tag não atribuída');
+    }
+  } catch (error) {
+    console.error("Erro ao verificar tag:", error);
+    res.status(500).send('Erro ao verificar tag');
+  }
+});
+
+// Rota para desatribuir uma tag de um cliente
+app.delete("/clientes/:clienteId/tags/:tagId", (req, res) => {
+  const { clienteId, tagId } = req.params;
+  const query = `
+      DELETE FROM cliente_categoria 
+      WHERE id_cliente = ? AND id_categoria = ?;
+    `;
+
+  db.query(query, [clienteId, tagId], (err, results) => {
+    if (err) {
+      return res.status(500).send(err);
+    }
+    res.status(200).send("Tag removida com sucesso.");
+  });
+});
+
+// Rota para atribuir uma tag a um cliente
+app.post("/clientes/:id_cliente/tags", (req, res) => {
+  const { id_cliente } = req.params;
+  const { id_categoria } = req.body; // Espera o ID da categoria a ser associada
+  const query = 'INSERT IGNORE INTO cliente_categoria (id_cliente, id_categoria) VALUES (?, ?)';
+  db.query(query, [id_cliente, id_categoria], (err, results) => {
+    if (err) {
+      return res.status(500).send(err);
+    }
+    res.status(201).json({ message: "Tag atribuída com sucesso!" });
+  });
+});
+
+
+
+
+// Rota para listar todos os templates de mensagem
+app.get('/mensagens', (req, res) => {
+  const query = 'SELECT * FROM mensagem';
+  db.query(query, (err, results) => {
+    if (err) {
+      return res.status(500).send(err);
+    }
+    res.json(results);
+  });
+});
+
+// Rota para criar uma nova mensagem 
+app.post('/mensagens', (req, res) => {
+  const { titulo, corpo } = req.body;
+  const query = 'INSERT INTO mensagem (titulo, corpo) VALUES (?, ?)';
+  db.query(query, [titulo, corpo], (err, results) => {
+    if (err) {
+      return res.status(500).send(err);
+    }
+    res.status(201).json({ id_mensagem: results.insertId, titulo, corpo });
+  });
+});
+
+// Rota para enviar mensagens para os clientes selecionados
+app.post('/mensagens/enviar', async (req, res) => {
+  const { clientes, templateId } = req.body;
+
+  try {
+    // Consulta o template de mensagem
+    const [template] = await db.promise().query('SELECT * FROM mensagem WHERE id_mensagem = ?', [templateId]);
+    const mensagemTexto = template[0]?.corpo;
+
+    if (!mensagemTexto) {
+      return res.status(404).send("Template de mensagem não encontrado.");
+    }
+
+    // Busca os números de telefone dos clientes
+    const clientePromises = clientes.map(async clienteId => {
+      const [cliente] = await db.promise().query('SELECT telefone FROM cliente WHERE id_cliente = ?', [clienteId]);
+      return cliente[0]?.telefone;
+    });
+
+    // Aguarda a obtenção de todos os números de telefone
+    const telefones = await Promise.all(clientePromises);
+
+    // Envia a mensagem para todos os números usando o GZAPPY
+    const response = await gClient.sendMessage([mensagemTexto], telefones);
+    console.log("Resposta do GZAPPY:", response);
+
+    // Registra o envio no banco de dados
+    const envioPromises = clientes.map(clienteId => {
+      const query = 'INSERT INTO envio_mensagem (id_cliente, id_mensagem, data_envio) VALUES (?, ?, CURDATE())';
+      return db.promise().query(query, [clienteId, templateId]);
+    });
+
+    await Promise.all(envioPromises);
+    res.status(200).send("Mensagens enviadas com sucesso!");
+  } catch (error) {
+    console.error("Erro ao enviar mensagens:", error);
+    res.status(500).send("Erro ao enviar mensagens");
+  }
+});
+
+
 
 
 //Paginas
 app.get("/", (request, response, next) => {
-    const page = path.join(path.resolve(), 'public', 'views' ,'index.html')
-    response.sendFile(page)
+  const page = path.join(path.resolve(), "public", "views", "index.html");
+  response.sendFile(page);
 });
 
-app.listen(process.env.PORT, () =>(
-    console.log('Rodando!')
-));
+app.listen(process.env.PORT, () => console.log("Rodando!"));
