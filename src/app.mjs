@@ -11,14 +11,13 @@ const bodyParser = require("body-parser");
 const require = createRequire(import.meta.url);
 const gClient = require("../public/assets/js/gzappy.js");
 //Models
-import User from "./models/UsuarioModel.js";
+import Usuario from "./models/UsuarioModel.js";
 import Cliente from "./models/ClienteModel.js";
 import Mensagem from "./models/MensagemModel.js";
 import Tag from "./models/TagModel.js";
+import dataAtual from "./functions/date.js"
 
 dotenv.config();
-const db = mysql.createPool(process.env.CONNECTION_STRING);
-
 const app = express();
 
 // Express Middlewares
@@ -57,8 +56,8 @@ app.post("/auth/register", async (req, res) => {
   }
 
   //Checagem de usuário existente
-  const userExists = await User.findOne({ email: email });
-  if (userExists) {
+  const usuarioExiste = await Usuario.findOne({ email: email });
+  if (usuarioExiste) {
     return res.status(422).json({ msg: "Email Já cadastrado!" });
   }
 
@@ -67,13 +66,13 @@ app.post("/auth/register", async (req, res) => {
   const passwordHash = await bcrypt.hash(password, salt);
 
   //Criar Usuario
-  const user = new User({
+  const usuario = new Usuario({
     name,
     email,
     password: passwordHash,
   });
   try {
-    await user.save();
+    await usuario.save();
     res.status(201).json({ msg: "Usuário criado!" });
   } catch (error) {
     console.log(error);
@@ -94,13 +93,13 @@ app.post("/auth/login", async (req, res) => {
   }
 
   //Checar se o usuário existe
-  const user = await User.findOne({ email: email });
-  if (!user) {
+  const usuario = await Usuario.findOne({ email: email });
+  if (!usuario) {
     return res.status(404).json({ msg: "Usuário não encontrado!" });
   }
 
   //Checar se a senha está correta
-  const checkpassword = await bcrypt.compare(password, user.password);
+  const checkpassword = await bcrypt.compare(password, usuario.password);
   if (!checkpassword) {
     return res.status(422).json({ msg: "Senha inválida!" });
   }
@@ -108,7 +107,7 @@ app.post("/auth/login", async (req, res) => {
   try {
     const token = jwt.sign(
       {
-        id: user._id,
+        id: usuario._id,
       },
       process.env.SECRET
     );
@@ -119,44 +118,130 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
-// Rota para obter todos os clientes
-app.get("/clientes", auth.checkToken, async (req, res) => {});
+// Rota para obter todos os clientes do usuario logado
+app.get("/clientes", auth.checkToken, async (req, res) => {
+  const usuarioLogado = req.userId
+  const clientes = Cliente.find({usuario: usuarioLogado})
+  res.json(clientes)
+});
 
 // Rota para obter os dados de um cliente específico
-app.get("/clientes/:id_cliente", auth.checkToken, async (req, res) => {});
+app.get("/clientes/:id_cliente", auth.checkToken, async (req, res) => {
+  const cliente = Cliente.findById(req._id)
+  res.json(cliente)
+});
 
 // Rota para criar um novo cliente
-app.post("/clientes", auth.checkToken, async (req, res) => {});
+app.post("/clientes", auth.checkToken, async (req, res) => {
+  const {nome, telefone, email} = req.body
+  const ultimo_contato = dataAtual()
+  const usuario = req.userId
+
+  const cliente = new Cliente(
+    nome,
+    telefone,
+    email,
+    ultimo_contato,
+    usuario
+  )
+  try {
+    await cliente.save();
+    res.status(201).json({ msg: "Usuário criado!" });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ msg: "Deu pau no BD" });
+  }
+});
 
 // Rota para atualizar um cliente
-app.put("/clientes/:id_cliente", auth.checkToken, async (req, res) => {});
+app.put("/clientes/:id_cliente", auth.checkToken, async (req, res) => {
+  const id_cliente = req.params.id_cliente
+  const {nome, telefone, email} = req.body
+  const ultimo_contato = dataAtual()
+  const usuario = req.userId
+
+  try{
+    await Cliente.findByIdAndUpdate(id_cliente,{
+    nome: nome,
+    telefone: telefone,
+    email: email,
+    ultimo_contato: ultimo_contato,
+    usuario: usuario
+    })
+    res.status(201).json({msg: "Cliente editado com sucesso!"})
+  } catch(err){
+    console.log(err)
+    res.status(500).json({msg: "Algo deu errado na edição do cliente!"})
+  }
+});
 
 // Rota para excluir um cliente
-app.delete("/clientes/:id_cliente", auth.checkToken, async (req, res) => {});
+app.delete("/clientes/:id_cliente", auth.checkToken, async (req, res) => {
+  const id_cliente = req.params.id_cliente
+  try{
+    await Cliente.findByIdAndDelete(id_cliente)
+    res.status(201).json({msg: "Cliente deletado com sucesso!"})
+  } catch(err){
+    console.log(err)
+    res.status(500).json({msg: "Não foi possivel deletar o cliente!"})
+  }
+});
 
 // Rota para listar todas as tags
-app.get("/tags", auth.checkToken, async (req, res) => {});
+app.get("/tags", auth.checkToken, async (req, res) => {
+  const usuarioLogado = req.userId
+  const tags = Tag.find({usuario: usuarioLogado})
+
+  res.json(tags)
+});
 
 // Rota para adicionar uma nova tag
-app.post("/tags", auth.checkToken, async (req, res) => {});
+app.post("/tags", auth.checkToken, async (req, res) => {
+  const nome_tag = req.body.nome_tag
+  const usuario = req.userId
 
-// Rota para verificar se uma tag ja está atribuida
-app.get("/clientes/:clienteId/tags/:tagId", auth.checkToken, async (req, res) => {});
+  const tag = new Tag(
+    nome_tag,
+    usuario
+  )
+  try{
+    await tag.save()
+    res.status(201).json({msg: "Tag criada com sucesso!"})
+  }catch(err){
+    console.log(err)
+    res.status(500).json({msg: "Falha ao criar a tag!"})
+  }
+});
+
+// Rota para receber as tags de um cliente
+app.get("/clientes/:clienteId/tags/:tagId", auth.checkToken, async (req, res) => {
+  const usuarioLogado = req.userId
+});
 
 // Rota para desatribuir uma tag de um cliente
-app.delete("/clientes/:clienteId/tags/:tagId", auth.checkToken, async (req, res) => {});
+app.delete("/clientes/:clienteId/tags/:tagId", auth.checkToken, async (req, res) => {
+  const usuarioLogado = req.userId
+});
 
 // Rota para atribuir uma tag a um cliente
-app.post("/clientes/:id_cliente/tags", auth.checkToken, async (req, res) => {});
+app.post("/clientes/:id_cliente/tags", auth.checkToken, async (req, res) => {
+  const usuarioLogado = req.userId
+});
 
 // Rota para listar todos os templates de mensagem
-app.get("/mensagens", auth.checkToken, async (req, res) => {});
+app.get("/mensagens", auth.checkToken, async (req, res) => {
+  const usuarioLogado = req.userId
+});
 
 // Rota para criar uma nova mensagem
-app.post("/mensagens", auth.checkToken, async (req, res) => {});
+app.post("/mensagens", auth.checkToken, async (req, res) => {
+  const usuarioLogado = req.userId
+});
 
 // Rota para enviar mensagens para os clientes selecionados
-app.post("/mensagens/enviar", auth.checkToken, async (req, res) => {});
+app.post("/mensagens/enviar", auth.checkToken, async (req, res) => {
+  const usuarioLogado = req.userId
+});
 
 //Paginas
 app.get("/", (request, response, next) => {
