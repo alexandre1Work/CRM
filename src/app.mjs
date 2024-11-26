@@ -121,7 +121,7 @@ app.post("/auth/login", async (req, res) => {
 // Rota para obter todos os clientes do usuario logado
 app.get("/clientes", auth.checkToken, async (req, res) => {
   const usuarioLogado = req.userId
-  const clientes = Cliente.find({usuario: usuarioLogado})
+  const clientes = Cliente.find({usuario: usuarioLogado}).populate('tags')
   res.json(clientes)
 });
 
@@ -195,7 +195,7 @@ app.get("/tags", auth.checkToken, async (req, res) => {
   res.json(tags)
 });
 
-// Rota para adicionar uma nova tag
+// Rota para criar uma nova tag
 app.post("/tags", auth.checkToken, async (req, res) => {
   const nome_tag = req.body.nome_tag
   const usuario = req.userId
@@ -213,34 +213,95 @@ app.post("/tags", auth.checkToken, async (req, res) => {
   }
 });
 
-// Rota para receber as tags de um cliente
-app.get("/clientes/:clienteId/tags/:tagId", auth.checkToken, async (req, res) => {
-  const usuarioLogado = req.userId
-});
-
 // Rota para desatribuir uma tag de um cliente
-app.delete("/clientes/:clienteId/tags/:tagId", auth.checkToken, async (req, res) => {
-  const usuarioLogado = req.userId
+app.delete("/tag/:clienteId/:tagId", auth.checkToken, async (req, res) => {
+  const { clienteId, tagId } = req.params
+  try {
+    await Cliente.findByIdAndUpdate(clienteId,{$pull: { tags: tagId } })
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({msg: "Erro ao desatribuir a tag!"})
+  }
 });
 
 // Rota para atribuir uma tag a um cliente
-app.post("/clientes/:id_cliente/tags", auth.checkToken, async (req, res) => {
-  const usuarioLogado = req.userId
+app.post("/tag/:clienteId/:tagId", auth.checkToken, async (req, res) => {
+  const { clienteId, tagId } = req.params
+
+  try {
+    const cliente = await Cliente.findById(clienteId)
+
+    //Validações
+    if(!cliente) {return res.status(404).json({msg: "Cliente não encontrado!"})}
+    if(cliente.tags.includes(tagId)) {return res.status(400).json({msg: "Tag ja atribuida a esse cliente!"})}
+    
+    await Cliente.findByIdAndUpdate(clienteId,{
+      $addToSet: { tags: tagId }
+    })
+
+  } catch (error) {
+    console.log(errror)
+    res.status(500).json({msg: "Erro ao atribuir a tag!"})
+  }
 });
 
 // Rota para listar todos os templates de mensagem
 app.get("/mensagens", auth.checkToken, async (req, res) => {
   const usuarioLogado = req.userId
+  try {
+    const mensagens = await Mensagem.find({usuario: usuarioLogado})
+    res.status(200).json(mensagens)
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({msg: "Erro ao buscar as mensagens!"})
+  }
+
+
 });
 
 // Rota para criar uma nova mensagem
 app.post("/mensagens", auth.checkToken, async (req, res) => {
   const usuarioLogado = req.userId
+  try {
+    const {titulo, corpo} = req.body
+    const mensagem = new Mensagem(
+      titulo,
+      corpo,
+      usuarioLogado
+    )
+    await mensagem.save()
+    res.status(200).json({msg: "Template criado com sucesso!"})
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({msg: "Erro ao criar a mensagem!"})
+  }
 });
 
 // Rota para enviar mensagens para os clientes selecionados
-app.post("/mensagens/enviar", auth.checkToken, async (req, res) => {
-  const usuarioLogado = req.userId
+app.post("/mensagens/:mensagemId/enviar", auth.checkToken, async (req, res) => {
+  //idClientes deve ser um array com os id's dos clientes
+  const idClientes = req.body.idClientes
+  const templateId = req.params.mensagemId
+  try {
+    
+    const mensagem = Mensagem.findById(templateId)
+    const mensagemTexto = mensagem.corpo
+
+    if(!mensagemTexto){return res.status(404).json({msg: "Template não encontrado!"})}
+
+    const telefones = await Cliente.find({'_id': {$in: idClientes} }).select('telefone')
+
+    await gClient.sendMessage([mensagemTexto], telefones)
+
+    //Atualiza o ultimo contato dos clientes
+    const ultimo_contato = dataAtual()
+    await Cliente.updateMany({_id: {$in: idClientes} },
+      {$set: {ultimo_contato} }
+    )
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({msg: "Erro ao enviar a mensagem!"})
+  }
 });
 
 //Paginas

@@ -6,6 +6,7 @@ const ClienteSchema = new Schema({
     telefone: { type: String, maxlength: 20 },
     email: { type: String, maxlength: 50 },
     ultimo_contato: { type: Date, default: Date.now() },
+    tags: [{type:mongoose.Schema.Types.ObjectId, ref: 'Tag'}],
     usuario: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' }
 });
 
