@@ -7,8 +7,8 @@ import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import mysql from "mysql2";
 import { createRequire } from "module";
-const bodyParser = require("body-parser");
 const require = createRequire(import.meta.url);
+const bodyParser = require("body-parser");
 const gClient = require("../public/assets/js/gzappy.js");
 //Models
 import Usuario from "./models/UsuarioModel.js";
@@ -29,7 +29,7 @@ app.use(express.urlencoded({ extended: true }));
 //Inicialização
 mongoose
   .connect(
-    `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.2qpyc.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority&appName=Cluster0`
+    `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.zgfwx.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority&appName=Cluster0`
   )
   .then(() => {
     app.listen(process.env.PORT);
@@ -38,8 +38,8 @@ mongoose
   .catch((err) => console.log(err));
 
 // Rota para registro de usuário
-app.post("/auth/register", async (req, res) => {
-  const { name, email, password, confirmpassword } = req.body;
+app.post("/auth/registro", async (req, res) => {
+  const { name, email, password, confirmpassword } = req.body
 
   // Checagem de campo vazio
   if (!name) {
@@ -73,7 +73,8 @@ app.post("/auth/register", async (req, res) => {
   });
   try {
     await usuario.save();
-    res.status(201).json({ msg: "Usuário criado!" });
+    res.status(201).json({ msg: "Usuário criado!" }).redirect('/login');
+    
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "Deu pau no BD" });
@@ -111,7 +112,7 @@ app.post("/auth/login", async (req, res) => {
       },
       process.env.SECRET
     );
-    res.status(200).json({ msg: "Autenticação realizada", token });
+    res.status(200).json({ msg: "Autenticação realizada", token }).redirect('/');
   } catch (error) {
     console.log(error);
     res.status(500).json({ msg: "Deu pau no BD" });
@@ -307,5 +308,13 @@ app.post("/mensagens/:mensagemId/enviar", auth.checkToken, async (req, res) => {
 //Paginas
 app.get("/", (request, response, next) => {
   const page = path.join(path.resolve(), "public", "views", "index.html");
+  response.sendFile(page);
+});
+app.get("/login", (request, response, next) => {
+  const page = path.join(path.resolve(), "public", "views", "login.html");
+  response.sendFile(page);
+});
+app.get("/registro", (request, response, next) => {
+  const page = path.join(path.resolve(), "public", "views", "registro.html");
   response.sendFile(page);
 });
