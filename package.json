@@ -10,9 +10,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "gzappy-js": "^0.0.18",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.8.2",
     "mysql2": "^3.11.3",
     "node-fetch": "^3.3.2"
   }
