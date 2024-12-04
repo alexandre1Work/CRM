@@ -7,7 +7,7 @@ loginForm.addEventListener("submit", async (event) => {
   const password = document.querySelector("#password").value;
 
   try {
-    const response = await fetch("http://localhost:3000/auth/login", {
+    const response = await fetch("/auth/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -20,9 +20,11 @@ loginForm.addEventListener("submit", async (event) => {
     if (response.status === 200) {
       // Salva o token no localStorage
       localStorage.setItem("token", data.token);
-      alert("Logado com sucesso!");
+      history.pushState(null, "", "/dashboard");
+      location.reload()
     } else {
       // Exibe o erro caso o login falhe
+      alert(data.msg)
       console.error(data.msg);
     }
   } catch (error) {
